@@ -1,9 +1,18 @@
 all: server client
 
+BUILD_DIR ?= ./build
+SRC_DIRS ?= ./src
+INC_DIR=$(SRC_DIRS)/headers
+SERVER_DIRS=$(SRC_DIRS)/server
+CLIENT_DIRS=$(SRC_DIRS)/client
+COMMON_DIRS=$(SRC_DIRS)/common
+
 CC=gcc
-COMM=FTPtransfer.o recvFile.o sendFile.o DieWithError.o
-CFLAGS = -Wall
-SRC=$(COMM: .o=.c)
+SERVER=$(shell find $(SERVER_DIRS) -name *.c)
+CLIENT=$(shell find $(CLIENT_DIRS) -name *.c)
+COMMON=$(shell find $(COMMON_DIRS) -name *.c)
+
+CFLAGS = -Wall -I$(INC_DIR)
 ifeq ($(OS),Windows_NT)
     RM=del -f
 	CFLAGS+= -lwsock32 -lws2_32
@@ -12,14 +21,22 @@ else
 
 endif
 
-server: ChattingServer.o HandleClient.o $(COMM)
-	$(CC) -o server ChattingServer.o HandleClient.o $(COMM) $(CFLAGS) 
+dep : 
+	gccmakedep $(INC) $(SRCS)
 
-client: ChattingClient.o $(COMM)
-	$(CC) -o client ChattingClient.o $(COMM) $(CFLAGS)
+server: $(SERVER) $(COMMON)
+	$(MKDIR_P) $(BUILD_DIR)
+	$(CC) -o $(BUILD_DIR)/server.out $(SERVER) $(COMMON) $(CFLAGS) 
 
-.c.o:
+client: $(CLIENT) $(COMMON)
+	$(MKDIR_P) $(BUILD_DIR)
+	$(CC) -o $(BUILD_DIR)/client.out $(CLIENT) $(COMMON) $(CFLAGS)
+
+$(BUILD_DIR)/%.c.o: %.c
+	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	$(RM) *.o *.exe
+	$(RM) -r $(BUILD_DIR)
+
+MKDIR_P ?= mkdir -p
